@@ -1,0 +1,1 @@
+-- Optional Supabase schema if you later add persistence
