@@ -1,75 +1,61 @@
-# AI Interviewer (Face-to-Face) — SDE Intern
 
-A complete, testable AI interviewer that conducts a 5–7 question interview, records answers (voice or text), and generates an evaluation (Technical Knowledge, Problem Solving, Communication).
+# 🤖 AI Interviewer – Face-to-Face AI Mock Interview Platform
 
-## Tech
-- Frontend: Next.js 14 + TypeScript + Tailwind + Framer Motion (premium UI)
-- Backend: Node.js + Express + OpenAI API (questioning, analysis, scoring)
-- Media: getUserMedia (camera/mic) + (optional) browser speech APIs
-- Storage: In-memory for demo (optional Supabase hook included – disabled by default)
+A full-stack **AI-powered mock interview platform** that simulates a **real-time, face-to-face interview experience**.  
+The AI acts as an interviewer, asks dynamic questions, records your responses, and provides **detailed performance evaluation** at the end.
 
 ---
 
-## Quick Start
+## 🌐 Live Demo
 
-### 1) Prereqs
-- Node 18+
-- An OpenAI API key
+🚀 **Frontend (User Interface):**  
+[https://ai-interviewer-frontend-0cjk.onrender.com/](https://ai-interviewer-frontend-0cjk.onrender.com/)
 
-### 2) Backend
+⚙️ **Backend (API):**  
+[https://ai-interviewer-gu59.onrender.com/](https://ai-interviewer-gu59.onrender.com/)
+
+---
+
+## ✨ Features
+
+- 🎙 **Voice Input Support** – Speak your answers using your microphone.  
+- 🎥 **Camera Detection** – Detects your face for a real interview feel.  
+- ⏱ **Timed Responses** – 60-second countdown timer for each question.  
+- 🤝 **Dynamic AI Interaction** – AI generates questions dynamically.  
+- 📊 **Performance Evaluation** – Get detailed feedback and a final score after the interview.  
+- 🌍 **Cross-Origin Ready** – Smooth integration between backend and frontend using proper CORS setup.  
+- ⚡ **Responsive UI** – Built with **Next.js** and **Tailwind CSS** for a seamless experience on any device.
+
+---
+
+## 🖼 Project Demo
+
+🎥 **Demo Video** – [Watch Here](https://drive.google.com/file/d/1VBZfFD8Xj4JCPsx4xmOZCXpCOSTNU9Qv/view?usp=sharing)
+
+---
+
+## 🛠 Tech Stack
+
+### **Frontend:**
+- [Next.js](https://nextjs.org/) – React framework for fast and modern UI.
+- [Tailwind CSS](https://tailwindcss.com/) – Styling for a clean, responsive design.
+- Speech Recognition API for **voice-to-text**.
+
+### **Backend:**
+- [Node.js](https://nodejs.org/) + [Express.js](https://expressjs.com/) – API and business logic.
+- [OpenAI GPT](https://platform.openai.com/) – AI-generated interview questions and evaluations.
+
+### **Deployment:**
+- **Frontend:** Render  
+- **Backend:** Render
+
+---
+
+## 🚀 Getting Started (Local Setup)
+
+Follow these steps to run the project locally:
+
+### **1️⃣ Clone the repository**
 ```bash
-cd backend
-cp .env.example .env   # put your OPENAI_API_KEY here
-npm install
-npm run dev            # http://localhost:4000
-```
-
-### 3) Frontend
-```bash
-cd ../frontend
-npm install
-npm run dev            # http://localhost:3000
-```
-
-> Keep both servers running in two terminals.
-
-### 4) Demo Flow
-- Open http://localhost:3000
-- Click **Start Interview**
-- Allow Camera/Mic
-- Answer ~6 questions (voice or text)
-- See **evaluation** with scores & feedback
-- (Optional) Download transcript JSON
-
----
-
-## Environment
-
-**backend/.env**
-```
-OPENAI_API_KEY=sk-...
-PORT=4000
-ALLOWED_ORIGIN=http://localhost:3000
-```
-
-**frontend/.env.local** (optional if using Supabase in your own fork)
-```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_PUBLIC_API_BASE=http://localhost:4000
-```
-
----
-
-## Deploy
-- Frontend: Vercel or Render static
-- Backend: Render/Railway/Fly.io (remember to set CORS ALLOWED_ORIGIN)
-- Add your `OPENAI_API_KEY` to backend environment
-
----
-
-## Notes
-- Voice input uses `webkitSpeechRecognition` when available, else text input fallback.
-- Voice output uses `speechSynthesis` (browser TTS).
-- For “face-to-face”, the candidate video is shown; AI speaks via TTS + avatar bubble.
-- Replace the OpenAI model name in `backend/services/openaiService.js` if desired.
+git clone https://github.com/Aditi2354/ai-interviewer.git
+cd ai-interviewer
