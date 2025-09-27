@@ -5,49 +5,85 @@ import React, { useEffect, useRef, useState } from 'react';
 type Props = {
   question: string;
   onAnswer: (text: string) => void;
-  disabled?: boolean; // disable while submitting
+  disabled?: boolean;
 };
 
 export default function QuestionBox({ question, onAnswer, disabled }: Props) {
-  // answer (typed + voice)
   const [text, setText] = useState('');
-  // 60s lock before submit
   const [timer, setTimer] = useState(60);
   const [canSubmit, setCanSubmit] = useState(false);
 
-  // speech-to-text (browser Web Speech API)
+  // STT
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const [sttSupported, setSttSupported] = useState(false);
 
-  // ------- per-question reset + speak the question -------
+  // ✅ TTS gate
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const voicesReadyRef = useRef(false);
+
+  function ensureVoicesLoaded() {
+    const w: any = typeof window !== 'undefined' ? window : {};
+    if (!('speechSynthesis' in w)) return;
+    const load = () => {
+      const voices = w.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        voicesReadyRef.current = true;
+        w.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+    load();
+    w.speechSynthesis.onvoiceschanged = load;
+  }
+
+  function speak(textToSpeak: string) {
+    const w: any = typeof window !== 'undefined' ? window : {};
+    if (!ttsEnabled || !('speechSynthesis' in w)) return;
+    try {
+      // Some browsers need resume after user gesture
+      w.speechSynthesis.resume?.();
+      if (!voicesReadyRef.current) ensureVoicesLoaded();
+
+      const utt = new SpeechSynthesisUtterance(textToSpeak);
+      utt.lang = 'en-US';   // change to "hi-IN" for Hindi
+      utt.rate = 1;
+      w.speechSynthesis.cancel(); // stop any previous
+      w.speechSynthesis.speak(utt);
+    } catch {}
+  }
+
+  const enableVoice = () => {
+    const w: any = typeof window !== 'undefined' ? window : {};
+    if (!('speechSynthesis' in w)) {
+      alert('Text-to-speech not supported in this browser.');
+      return;
+    }
+    try {
+      ensureVoicesLoaded();
+      // “warm up” to satisfy autoplay policy
+      const blip = new SpeechSynthesisUtterance(' ');
+      w.speechSynthesis.speak(blip);
+      w.speechSynthesis.cancel();
+    } catch {}
+    setTtsEnabled(true);
+  };
+
+  // ===== per-question reset + (optional) TTS =====
   useEffect(() => {
     if (!question) return;
 
-    // reset input + timer
     setText('');
     setCanSubmit(false);
     setTimer(60);
 
-    // speak the question (slight delay to avoid autoplay blocking)
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        const utt = new SpeechSynthesisUtterance(question);
-        utt.lang = 'en-US'; // change to "hi-IN" for Hindi
-        utt.rate = 1;
-        setTimeout(() => window.speechSynthesis.speak(utt), 400);
-      } catch {
-        /* ignore */
-      }
-    }
+    // speak after slight delay (if user enabled)
+    const t = setTimeout(() => speak(question), 400);
 
-    // 60s countdown, then enable submit
     const interval = setInterval(() => {
       setTimer(prev => {
         if (prev <= 1) {
           clearInterval(interval);
           setCanSubmit(true);
-          // stop mic auto at 60s
           recognitionRef.current?.stop?.();
           return 0;
         }
@@ -55,23 +91,23 @@ export default function QuestionBox({ question, onAnswer, disabled }: Props) {
       });
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [question]);
+    return () => { clearTimeout(t); clearInterval(interval); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, ttsEnabled]);
 
-  // ------- detect STT support once -------
+  // STT support detect
   useEffect(() => {
     const w: any = typeof window !== 'undefined' ? window : {};
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     setSttSupported(!!SR);
   }, []);
 
-  // ------- start/stop continuous speech recognition -------
+  // STT start/stop
   const handleVoice = () => {
     const w: any = typeof window !== 'undefined' ? window : {};
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) return;
 
-    // if already recording → stop
     if (listening && recognitionRef.current) {
       recognitionRef.current.stop();
       return;
@@ -79,16 +115,14 @@ export default function QuestionBox({ question, onAnswer, disabled }: Props) {
 
     const rec = new SR();
     recognitionRef.current = rec;
-    rec.lang = 'en-US';          // change to "hi-IN" for Hindi
-    rec.continuous = true;       // keep listening
-    rec.interimResults = true;   // show partial text
+    rec.lang = 'en-US';
+    rec.continuous = true;
+    rec.interimResults = true;
 
     let finalTranscript = '';
-
     rec.onstart = () => setListening(true);
     rec.onerror = () => setListening(false);
     rec.onend = () => setListening(false);
-
     rec.onresult = (e: any) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -96,21 +130,14 @@ export default function QuestionBox({ question, onAnswer, disabled }: Props) {
         if (e.results[i].isFinal) finalTranscript += chunk + ' ';
         else interim += chunk;
       }
-      const merged = (finalTranscript + ' ' + interim).trim();
-      setText(merged);
+      setText((finalTranscript + ' ' + interim).trim());
     };
 
     rec.start();
   };
 
-  // stop recognition on unmount
-  useEffect(() => {
-    return () => {
-      try { recognitionRef.current?.stop?.(); } catch {}
-    };
-  }, []);
+  useEffect(() => () => { try { recognitionRef.current?.stop?.(); } catch {} }, []);
 
-  // ------- submit -------
   const submit = () => {
     if (!canSubmit) return;
     const val = text.trim();
@@ -120,10 +147,22 @@ export default function QuestionBox({ question, onAnswer, disabled }: Props) {
 
   return (
     <div className="card">
-      <div className="text-sm text-slate-500 mb-1">AI asks</div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm text-slate-500">AI asks</div>
+        {!ttsEnabled && (
+          <button
+            type="button"
+            onClick={enableVoice}
+            className="px-3 py-1 text-xs rounded-lg bg-slate-900 text-white hover:opacity-90"
+            title="Enable AI voice (required once)"
+          >
+            Enable voice
+          </button>
+        )}
+      </div>
+
       <div className="text-xl font-semibold mb-4 leading-relaxed">{question}</div>
 
-      {/* Timer / status */}
       <div className="mb-3 text-sm">
         {canSubmit ? (
           <span className="text-green-600">You can now submit your answer</span>
@@ -164,9 +203,15 @@ export default function QuestionBox({ question, onAnswer, disabled }: Props) {
         </button>
       </div>
 
+      {!ttsEnabled && (
+        <div className="text-xs text-amber-600 mt-2">
+          Tip: Click “Enable voice” once to allow the browser to speak questions.
+        </div>
+      )}
+
       {listening && (
         <div className="text-xs text-slate-500 mt-2">
-          Listening… speak naturally; interim words will appear above.
+          Listening… interim words will appear above.
         </div>
       )}
     </div>
